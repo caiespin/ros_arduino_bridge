@@ -275,8 +275,12 @@ void setup() {
     // enable PCINT1 and PCINT2 interrupt in the general interrupt mask
     PCICR |= (1 << PCIE1) | (1 << PCIE2);
   #elif defined(ENC_AS5047_SPI)
-    while (!as5047p.initSPI()) {
-    Serial.println(F("Can't connect to the AS5047P sensor! Please check the connection..."));
+    while (!as5047p_left.initSPI()) {
+    Serial.println(F("Can't connect to the left AS5047P sensor! Please check the connection..."));
+    delay(5000);
+  }
+    while (!as5047p_right.initSPI()) {
+    Serial.println(F("Can't connect to the right AS5047P sensor! Please check the connection..."));
     delay(5000);
   }
   #endif

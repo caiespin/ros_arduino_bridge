@@ -15,13 +15,15 @@
 #elif defined(ENC_AS5047_SPI)
   #include <AS5047P.h>
   // define the chip select port.
-  #define AS5047P_CHIP_SELECT_PORT 7 
+  #define AS5047P_CHIP_SELECT_PORT_LEFT 7
+  #define AS5047P_CHIP_SELECT_PORT_RIGHT 8
 
   // define the spi bus speed 
   #define AS5047P_CUSTOM_SPI_BUS_SPEED 100000
 
   // initialize a new AS5047P sensor object.
-  AS5047P as5047p(AS5047P_CHIP_SELECT_PORT, AS5047P_CUSTOM_SPI_BUS_SPEED);
+  AS5047P as5047p_left(AS5047P_CHIP_SELECT_PORT_LEFT, AS5047P_CUSTOM_SPI_BUS_SPEED);
+  AS5047P as5047p_right(AS5047P_CHIP_SELECT_PORT_RIGHT, AS5047P_CUSTOM_SPI_BUS_SPEED);
 #endif
    
 long readEncoder(int i);

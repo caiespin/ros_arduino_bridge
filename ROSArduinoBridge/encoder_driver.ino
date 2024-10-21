@@ -75,11 +75,11 @@
     /* Wrap the encoder reading function */
   long readEncoder(int i) {
     if (i == LEFT){
-      left_enc_pos=as5047p.readAngleRaw();
-      return;
+      left_enc_pos=as5047p_left.readAngleRaw();
+      return left_enc_pos;
     } else { 
-      right_enc_pos=as5047p.readAngleRaw();
-      return;
+      right_enc_pos=as5047p_right.readAngleRaw();
+      return right_enc_pos;
     }
   }
 
@@ -87,10 +87,10 @@
   void resetEncoder(int i) {
     if (i == LEFT){
       left_enc_pos=0L;
-      return;
+      return left_enc_pos;
     } else { 
       right_enc_pos=0L;
-      return;
+      return right_enc_pos;
     }
   }
 #else
