@@ -68,6 +68,31 @@
       return;
     }
   }
+#elif defined(ENC_AS5047_SPI)
+  
+  volatile long left_enc_pos = 0L;
+  volatile long right_enc_pos = 0L;
+    /* Wrap the encoder reading function */
+  long readEncoder(int i) {
+    if (i == LEFT){
+      left_enc_pos=as5047p.readAngleRaw();
+      return;
+    } else { 
+      right_enc_pos=as5047p.readAngleRaw();
+      return;
+    }
+  }
+
+  /* Wrap the encoder reset function */
+  void resetEncoder(int i) {
+    if (i == LEFT){
+      left_enc_pos=0L;
+      return;
+    } else { 
+      right_enc_pos=0L;
+      return;
+    }
+  }
 #else
   #error A encoder driver must be selected!
 #endif
@@ -79,4 +104,3 @@ void resetEncoders() {
 }
 
 #endif
-

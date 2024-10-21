@@ -60,7 +60,10 @@
    //#define ROBOGAIA
    
    /* Encoders directly attached to Arduino board */
-   #define ARDUINO_ENC_COUNTER
+   //#define ARDUINO_ENC_COUNTER
+
+   /* Encoders SPI AS5047*/
+   #define ENC_AS5047_SPI
 
    /* L298 Motor driver*/
    #define L298_MOTOR_DRIVER
@@ -271,6 +274,11 @@ void setup() {
     
     // enable PCINT1 and PCINT2 interrupt in the general interrupt mask
     PCICR |= (1 << PCIE1) | (1 << PCIE2);
+  #elif defined(ENC_AS5047_SPI)
+    while (!as5047p.initSPI()) {
+    Serial.println(F("Can't connect to the AS5047P sensor! Please check the connection..."));
+    delay(5000);
+  }
   #endif
   initMotorController();
   resetPID();
@@ -355,4 +363,3 @@ void loop() {
   }
 #endif
 }
-
