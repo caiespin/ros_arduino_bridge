@@ -5,6 +5,10 @@
    http://vanadium-ros-pkg.googlecode.com/svn/trunk/arbotix/
 */
 
+#define ENCODER_MAX 16383  // For a 14-bit encoder (2^14 - 1)
+#define ENCODER_MIN 0      // Minimum value for the encoder
+
+
 /* PID setpoint info For a Motor */
 typedef struct {
   double TargetTicksPerFrame;    // target speed in ticks per frame
@@ -64,14 +68,31 @@ void resetPID(){
    rightPID.ITerm = 0;
 }
 
+long computeDelta(long current, long previous) {
+    long delta = current - previous;
+
+    // Handle wrap-around
+    if (delta > (ENCODER_MAX / 2)) {
+        // Wrapped around from maximum to minimum
+        delta -= (ENCODER_MAX + 1);
+    } else if (delta < -(ENCODER_MAX / 2)) {
+        // Wrapped around from minimum to maximum
+        delta += (ENCODER_MAX + 1);
+    }
+
+    return delta;
+}
+
+
 /* PID routine to compute the next motor commands */
 void doPID(SetPointInfo * p) {
   long Perror;
   long output;
-  int input;
+  long input;
 
   //Perror = p->TargetTicksPerFrame - (p->Encoder - p->PrevEnc);
-  input = p->Encoder - p->PrevEnc;
+  //input = p->Encoder - p->PrevEnc;
+  input = computeDelta(p->Encoder, p->PrevEnc);
   Perror = p->TargetTicksPerFrame - input;
 
 
@@ -127,4 +148,3 @@ void updatePID() {
   /* Set the motor speeds accordingly */
   setMotorSpeeds(leftPID.output, rightPID.output);
 }
-
