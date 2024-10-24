@@ -19,7 +19,7 @@ typedef struct {
   * Using previous input (PrevInput) instead of PrevError to avoid derivative kick,
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
   */
-  int PrevInput;                // last input
+  long PrevInput;                // last input
   //int PrevErr;                   // last error
 
   /*
@@ -28,21 +28,43 @@ typedef struct {
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
   */
   //int Ierror;
-  int ITerm;                    //integrated term
+  long ITerm;                    //integrated term
 
   long output;                    // last motor setting
+  int Kp;                        // Proportional gain
+  int Ki;                        // Integral gain
+  int Kd;                        // Derivative gain
+  int Ko;
 }
 SetPointInfo;
 
 SetPointInfo leftPID, rightPID;
 
 /* PID Parameters */
-int Kp = 20;
+/*int Kp = 20;
 int Kd = 12;
 int Ki = 0;
-int Ko = 50;
+int Ko = 50;*/
+void initPID() {
+  // Initialize left motor PID gains
+  leftPID.Kp = 20;  // Adjust this value as needed
+  leftPID.Ki = 0;   // Adjust this value as needed
+  leftPID.Kd = 12;  // Adjust this value as needed
+  leftPID.Ko = 50;
+  
+
+  // Initialize right motor PID gains
+  rightPID.Kp = 20; // Adjust this value as needed
+  rightPID.Ki = 0;  // Adjust this value as needed
+  rightPID.Kd = 12; // Adjust this value as needed
+  rightPID.Ko = 50;
+}
+
 
 unsigned char moving = 0; // is the base in motion?
+unsigned char moving_left = 0;  // Left motor movement flag
+unsigned char moving_right = 0; // Right motor movement flag
+
 
 /*
 * Initialize PID variables to zero to prevent startup spikes
@@ -103,7 +125,10 @@ void doPID(SetPointInfo * p) {
   */
   //output = (Kp * Perror + Kd * (Perror - p->PrevErr) + Ki * p->Ierror) / Ko;
   // p->PrevErr = Perror;
-  output = (Kp * Perror - Kd * (input - p->PrevInput) + p->ITerm) / Ko;
+  //output = (Kp * Perror - Kd * (input - p->PrevInput) + p->ITerm) / Ko;
+  // Use individual gains
+  output = (p->Kp * Perror - p->Kd * (input - p->PrevInput) + p->ITerm) / p->Ko;
+  
   p->PrevEnc = p->Encoder;
 
   output += p->output;
@@ -117,7 +142,7 @@ void doPID(SetPointInfo * p) {
   /*
   * allow turning changes, see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
   */
-    p->ITerm += Ki * Perror;
+    p->ITerm += p->Ki * Perror;
 
   p->output = output;
   p->PrevInput = input;
@@ -128,23 +153,39 @@ void updatePID() {
   /* Read the encoders */
   leftPID.Encoder = readEncoder(LEFT);
   rightPID.Encoder = readEncoder(RIGHT);
-  
-  /* If we're not moving there is nothing more to do */
-  if (!moving){
-    /*
-    * Reset PIDs once, to prevent startup spikes,
-    * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/
-    * PrevInput is considered a good proxy to detect
-    * whether reset has already happened
-    */
-    if (leftPID.PrevInput != 0 || rightPID.PrevInput != 0) resetPID();
+
+  /* If neither motor is moving, there's nothing more to do */
+  if (!moving_left && !moving_right) {
+    if (leftPID.PrevInput != 0 || rightPID.PrevInput != 0)
+      resetPID();
     return;
   }
 
-  /* Compute PID update for each motor */
-  doPID(&rightPID);
-  doPID(&leftPID);
+  /* Compute PID update for the left motor if it's moving */
+  if (moving_left) {
+    doPID(&leftPID);
+  } else {
+    // Ensure the left motor is stopped
+    leftPID.output = 0;
+    setMotorSpeed(LEFT, 0);
+  }
+
+  /* Compute PID update for the right motor if it's moving */
+  if (moving_right) {
+    doPID(&rightPID);
+  } else {
+    // Ensure the right motor is stopped
+    rightPID.output = 0;
+    setMotorSpeed(RIGHT, 0);
+  }
 
   /* Set the motor speeds accordingly */
   setMotorSpeeds(leftPID.output, rightPID.output);
+  /*Serial.print(computeDelta(readEncoder(LEFT), leftPID.PrevEnc));
+  Serial.print(" ");
+  Serial.print(leftPID.output);
+  Serial.print(" ");
+  Serial.print(computeDelta(readEncoder(RIGHT), rightPID.PrevEnc));
+  Serial.print(" ");
+  Serial.println(rightPID.output);*/
 }

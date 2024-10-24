@@ -79,7 +79,7 @@
       return left_enc_pos;
     } else { 
       right_enc_pos=as5047p_right.readAngleRaw();
-      return right_enc_pos;
+      return -right_enc_pos;
     }
   }
 
@@ -87,10 +87,10 @@
   void resetEncoder(int i) {
     if (i == LEFT){
       left_enc_pos=0L;
-      return left_enc_pos;
+      return;
     } else { 
       right_enc_pos=0L;
-      return right_enc_pos;
+      return;
     }
   }
 #else

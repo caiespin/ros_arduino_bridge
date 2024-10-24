@@ -143,7 +143,7 @@ long arg2;
 
 /* Clear the current command parameters */
 void resetCommand() {
-  cmd = NULL;
+  cmd = '\0';
   memset(argv1, 0, sizeof(argv1));
   memset(argv2, 0, sizeof(argv2));
   arg1 = 0;
@@ -212,39 +212,71 @@ int runCommand() {
   case MOTOR_SPEEDS:
     /* Reset the auto stop timer */
     lastMotorCommand = millis();
-    if (arg1 == 0 && arg2 == 0) {
+
+    // Set moving flags based on individual motor target speeds
+    if (arg1 == 0) moving_left = 0;
+    else moving_left = 1;
+
+    if (arg2 == 0) moving_right = 0;
+    else moving_right = 1;
+
+    // If both motors are stationary, reset PID controllers
+    if (moving_left == 0 && moving_right == 0) {
       setMotorSpeeds(0, 0);
       resetPID();
-      moving = 0;
     }
-    else moving = 1;
+
     leftPID.TargetTicksPerFrame = arg1;
     rightPID.TargetTicksPerFrame = arg2;
+    
     Serial.println("OK"); 
-    break;
+  break;
+
   case MOTOR_RAW_PWM:
     /* Reset the auto stop timer */
     lastMotorCommand = millis();
     resetPID();
     moving = 0; // Sneaky way to temporarily disable the PID
+    moving_left = 0;
+    moving_right = 0;
     setMotorSpeeds(arg1, arg2);
     Serial.println("OK"); 
     break;
-  case UPDATE_PID:
-    while ((str = strtok_r(p, ":", &p)) != '\0') {
-       pid_args[i] = atoi(str);
-       i++;
-    }
-    Kp = pid_args[0];
-    Kd = pid_args[1];
-    Ki = pid_args[2];
-    Ko = pid_args[3];
-    Serial.println("OK");
+  case UPDATE_PID:{
+  // Expected format: 'u M:Kp:Kd:Ki:Ko'
+  // Where M is 'L' or 'R'
+  // Example: 'u L:20:12:0:50'
+  
+  char motor_id = argv1[0];  // Get motor identifier
+  char *pid_str = &argv1[2];       // Skip 'M:'
+
+  i = 0;
+  while ((str = strtok_r(pid_str, ":", &pid_str)) != NULL) {
+    pid_args[i] = atoi(str);
+    i++;
+  }
+
+  if (motor_id == 'L') {
+    leftPID.Kp = pid_args[0];
+    leftPID.Kd = pid_args[1];
+    leftPID.Ki = pid_args[2];
+    leftPID.Ko = pid_args[3];  
+  } else if (motor_id == 'R') {
+    rightPID.Kp = pid_args[0];
+    rightPID.Kd = pid_args[1];
+    rightPID.Ki = pid_args[2];
+    rightPID.Ko = pid_args[3];  
+  } else {
+    Serial.println("Invalid motor identifier");
     break;
+  }
+  Serial.println("OK");
+  break;
+
 #endif
   default:
     Serial.println("Invalid Command");
-    break;
+    break;}
   }
 }
 
@@ -286,6 +318,7 @@ void setup() {
   #endif
   initMotorController();
   resetPID();
+  initPID();  // Initialize PID gains for each motor
 #endif
 
 /* Attach servos if used */
@@ -312,8 +345,8 @@ void loop() {
 
     // Terminate a command with a CR
     if (chr == 13) {
-      if (arg == 1) argv1[index] = NULL;
-      else if (arg == 2) argv2[index] = NULL;
+      if (arg == 1) argv1[index] = '\0';
+      else if (arg == 2) argv2[index] = '\0';
       runCommand();
       resetCommand();
     }
@@ -322,7 +355,7 @@ void loop() {
       // Step through the arguments
       if (arg == 0) arg = 1;
       else if (arg == 1)  {
-        argv1[index] = NULL;
+        argv1[index] = '\0';
         arg = 2;
         index = 0;
       }
@@ -356,6 +389,8 @@ void loop() {
   if ((millis() - lastMotorCommand) > AUTO_STOP_INTERVAL) {;
     setMotorSpeeds(0, 0);
     moving = 0;
+    moving_left = 0;
+    moving_right = 0;
   }
 #endif
 
